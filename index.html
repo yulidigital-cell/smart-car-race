@@ -1,0 +1,876 @@
+<!DOCTYPE html>ADK
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Math Race - Yuli Digital</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Fredoka+One&family=Nunito:wght@600;800;900&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --car-red: #EF4444;
+            --car-blue: #3B82F6;
+            --car-green: #10B981;
+            --car-yellow: #F59E0B;
+        }
+        
+        body, html {
+            font-family: 'Nunito', sans-serif;
+            margin: 0;
+            padding: 0;
+            width: 100%;
+            height: 100%;
+            background-color: #0f172a;
+            color: white;
+            touch-action: manipulation; /* Mencegah zoom saat double tap */
+            overflow: hidden;
+            -webkit-user-select: none;
+            user-select: none;
+        }
+
+        /* Tipografi Ceria */
+        h1, h2, h3, .brand-font, .title-font {
+            font-family: 'Fredoka One', cursive;
+        }
+        .text-stroke {
+            -webkit-text-stroke: 2px #1e293b;
+            text-shadow: 0px 4px 0px #0f172a;
+        }
+        .text-stroke-sm {
+            -webkit-text-stroke: 1px #1e293b;
+        }
+
+        /* Latar Belakang & Animasi */
+        .bg-pattern {
+            background-color: #38bdf8;
+            background-image: radial-gradient(#bae6fd 20%, transparent 20%), radial-gradient(#bae6fd 20%, transparent 20%);
+            background-size: 60px 60px;
+            background-position: 0 0, 30px 30px;
+            animation: bgScroll 10s linear infinite;
+        }
+
+        @keyframes bgScroll {
+            100% { background-position: 60px 60px, 90px 90px; }
+        }
+
+        /* Tombol 3D */
+        .btn-chunky {
+            transition: all 0.1s cubic-bezier(0.4, 0, 0.2, 1);
+            position: relative;
+            transform: translateY(0);
+        }
+        .btn-chunky:active {
+            transform: translateY(6px);
+            box-shadow: 0 0px 0px rgba(0,0,0,0) !important;
+            margin-bottom: -6px; /* Kompensasi tinggi */
+        }
+        .btn-chunky.disabled {
+            filter: grayscale(100%);
+            pointer-events: none;
+            opacity: 0.7;
+        }
+
+        /* Lintasan & Jalan */
+        .track-bg {
+            background-color: #475569;
+            background-image: linear-gradient(to bottom, transparent 50%, #94a3b8 50%);
+            background-size: 10px 100px;
+            background-position-x: center;
+            background-repeat: repeat-y;
+        }
+        .road-moving {
+            animation: moveRoad 0.4s linear infinite;
+        }
+        @keyframes moveRoad {
+            from { background-position-y: 0px; }
+            to { background-position-y: 100px; }
+        }
+        .finish-line {
+            background: repeating-linear-gradient(45deg, #000, #000 15px, #fff 15px, #fff 30px);
+            height: 40px;
+            width: 100%;
+            position: absolute;
+            top: 5%;
+            left: 0;
+            z-index: 10;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.5);
+            border-bottom: 2px solid white;
+        }
+
+        .car-container {
+            transition: bottom 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
+            z-index: 20;
+        }
+        .shake {
+            animation: shake 0.4s cubic-bezier(.36,.07,.19,.97) both;
+        }
+        @keyframes shake {
+            10%, 90% { transform: translate3d(-2px, 0, 0); }
+            20%, 80% { transform: translate3d(4px, 0, 0); }
+            30%, 50%, 70% { transform: translate3d(-6px, 0, 0); }
+            40%, 60% { transform: translate3d(6px, 0, 0); }
+        }
+
+        /* Floating Feedback Text */
+        .float-up {
+            animation: floatUp 1s ease-out forwards;
+        }
+        @keyframes floatUp {
+            0% { opacity: 0; transform: translateY(20px) scale(0.5); }
+            20% { opacity: 1; transform: translateY(0px) scale(1.2); }
+            80% { opacity: 1; transform: translateY(-30px) scale(1); }
+            100% { opacity: 0; transform: translateY(-50px) scale(0.8); }
+        }
+
+        /* Scrollbar kustom untuk setup */
+        ::-webkit-scrollbar { width: 8px; }
+        ::-webkit-scrollbar-track { background: rgba(0,0,0,0.2); border-radius: 10px; }
+        ::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.5); border-radius: 10px; }
+    </style>
+</head>
+<body class="flex justify-center items-center bg-slate-900">
+
+    <!-- Container Utama - Full Screen -->
+    <div id="app" class="relative w-full h-full bg-pattern overflow-hidden flex flex-col">
+
+        <div id="screen-home" class="absolute inset-0 flex flex-col items-center justify-center bg-gradient-to-br from-blue-500 to-indigo-800 z-50 p-4">
+            <!-- Dekorasi awan -->
+            <div class="absolute top-10 left-10 text-6xl opacity-30">☁️</div>
+            <div class="absolute top-20 right-20 text-8xl opacity-30">☁️</div>
+            
+            <div class="text-center mb-8 md:mb-12 z-10 animate-bounce" style="animation-duration: 2s;">
+                <h1 class="text-6xl md:text-8xl text-yellow-400 text-stroke drop-shadow-2xl">MATH<br>RACE</h1>
+                <p class="text-white mt-4 font-black text-lg md:text-2xl bg-black/40 px-6 py-2 rounded-full inline-block border-2 border-white/50 shadow-lg">Kelas 4 SD Edition</p>
+            </div>
+
+            <div class="flex flex-col gap-4 w-full max-w-lg z-10">
+                <button onclick="selectMode('SINGLE')" class="btn-chunky bg-green-500 hover:bg-green-400 text-white font-black text-2xl md:text-4xl py-5 rounded-3xl shadow-[0_8px_0px_#166534] border-4 border-white flex items-center justify-center gap-4">
+                    <span>🏎️</span>
+                    <div class="text-left">
+                        <span class="block leading-none">1 PEMAIN</span>
+                        <span class="text-sm md:text-lg font-bold text-green-100 block mt-1">SINGLE MODE</span>
+                    </div>
+                </button>
+                <button onclick="selectMode('BATTLE')" class="btn-chunky bg-orange-500 hover:bg-orange-400 text-white font-black text-2xl md:text-4xl py-5 rounded-3xl shadow-[0_8px_0px_#9a3412] border-4 border-white flex items-center justify-center gap-4">
+                    <span>⚔️</span>
+                    <div class="text-left">
+                        <span class="block leading-none">2 PEMAIN</span>
+                        <span class="text-sm md:text-lg font-bold text-orange-100 block mt-1">BATTLE MODE</span>
+                    </div>
+                </button>
+                <button onclick="selectMode('SQUAD')" class="btn-chunky bg-purple-500 hover:bg-purple-400 text-white font-black text-2xl md:text-4xl py-5 rounded-3xl shadow-[0_8px_0px_#4c1d95] border-4 border-white flex items-center justify-center gap-4">
+                    <span>🎮</span>
+                    <div class="text-left">
+                        <span class="block leading-none">4 PEMAIN</span>
+                        <span class="text-sm md:text-lg font-bold text-purple-100 block mt-1">SQUAD MODE</span>
+                    </div>
+                </button>
+            </div>
+
+            <div class="absolute bottom-6 text-center z-10">
+                <p class="brand-font text-white text-xl md:text-2xl tracking-wide opacity-90 text-stroke-sm">✨ Yuli Digital ✨</p>
+            </div>
+        </div>
+
+        <div id="screen-setup" class="hidden absolute inset-0 flex flex-col items-center justify-start pt-8 md:pt-16 bg-gradient-to-br from-indigo-600 to-purple-900 z-40 px-4 overflow-y-auto">
+            <div class="w-full max-w-2xl relative">
+                <button onclick="showScreen('home')" class="absolute -top-2 -left-2 md:-left-10 bg-white/20 p-3 rounded-2xl text-white hover:bg-white/40 transition-colors">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M10 19l-7-7m0 0l7-7m-7 7h18" /></svg>
+                </button>
+                
+                <h2 class="text-4xl md:text-6xl text-center text-yellow-300 text-stroke drop-shadow-md mb-8" id="setup-title">PENGATURAN</h2>
+
+                <div class="bg-white/10 backdrop-blur-md p-6 md:p-8 rounded-3xl mb-6 border-2 border-white/30 shadow-xl">
+                    <h3 class="text-2xl md:text-3xl font-black mb-4 text-center">Tingkat Kesulitan</h3>
+                    <div class="flex gap-3 justify-center">
+                        <button onclick="setDifficulty('EASY')" id="btn-diff-EASY" class="flex-1 py-4 md:py-6 rounded-2xl bg-green-500 font-black text-xl md:text-2xl border-4 border-white shadow-[0_6px_0px_#166534] transition-transform active:translate-y-2 active:shadow-none">Mudah</button>
+                        <button onclick="setDifficulty('MEDIUM')" id="btn-diff-MEDIUM" class="flex-1 py-4 md:py-6 rounded-2xl bg-gray-500 font-black text-xl md:text-2xl border-4 border-transparent shadow-[0_6px_0px_#374151] transition-transform active:translate-y-2 active:shadow-none">Sedang</button>
+                        <button onclick="setDifficulty('HARD')" id="btn-diff-HARD" class="flex-1 py-4 md:py-6 rounded-2xl bg-gray-500 font-black text-xl md:text-2xl border-4 border-transparent shadow-[0_6px_0px_#374151] transition-transform active:translate-y-2 active:shadow-none">Sulit</button>
+                    </div>
+                </div>
+
+                <div class="bg-white/10 backdrop-blur-md p-6 md:p-8 rounded-3xl mb-8 border-2 border-white/30 shadow-xl" id="players-setup-container">
+                    <h3 class="text-2xl md:text-3xl font-black mb-4 text-center">Nama Pemain</h3>
+                    <div id="player-inputs" class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <!-- Inputs injected via JS -->
+                    </div>
+                </div>
+
+                <button onclick="showScreen('instructions')" class="btn-chunky w-full bg-yellow-400 hover:bg-yellow-300 text-yellow-900 font-black text-3xl md:text-5xl py-6 rounded-3xl shadow-[0_8px_0px_#b45309] border-4 border-white mb-10">
+                    LANJUT ➡️
+                </button>
+            </div>
+        </div>
+
+        <div id="screen-instructions" class="hidden absolute inset-0 flex flex-col items-center justify-center bg-gradient-to-b from-teal-400 to-teal-800 z-40 px-4">
+            <div class="bg-white text-slate-800 p-8 md:p-12 rounded-[2.5rem] w-full max-w-2xl shadow-2xl border-8 border-teal-300 relative text-center">
+                <h2 class="text-4xl md:text-6xl title-font text-teal-600 mb-6 drop-shadow-sm">Cara Bermain</h2>
+                <div class="text-lg md:text-2xl font-bold space-y-6 text-left inline-block">
+                    <p class="flex items-center gap-4"><span>🧮</span> Jawab soal di bagian bawah lajurmu!</p>
+                    <p class="flex items-center gap-4"><span>🚀</span> Jawaban <b>BENAR</b> = Mobil melesat cepat</p>
+                    <p class="flex items-center gap-4"><span>🐢</span> Jawaban <b>SALAH</b> = Mobil terhenti / melambat</p>
+                    <p class="flex items-center gap-4"><span>🏁</span> Mobil pertama mencapai <b>FINISH</b> menang!</p>
+                </div>
+                <div class="mt-10 flex flex-col md:flex-row justify-center gap-4 md:gap-6">
+                    <button onclick="showScreen('setup')" class="px-8 py-4 bg-gray-300 rounded-2xl font-black text-xl md:text-2xl text-gray-700 shadow-[0_6px_0px_#9ca3af] active:translate-y-2 active:shadow-none transition-transform">KEMBALI</button>
+                    <button onclick="startGame()" class="px-12 py-4 bg-teal-500 text-white rounded-2xl font-black text-3xl md:text-4xl shadow-[0_6px_0px_#0f766e] border-4 border-white active:translate-y-2 active:shadow-none transition-transform">MULAI !</button>
+                </div>
+            </div>
+        </div>
+
+        <div id="screen-game" class="hidden absolute inset-0 flex flex-col bg-emerald-600 z-30">
+            <!-- Header Bar -->
+            <div class="h-16 md:h-20 bg-gray-900 border-b-4 border-black flex justify-between items-center px-4 md:px-8 z-20 shrink-0 shadow-lg">
+                <div class="text-white font-bold flex gap-4 items-center">
+                    <button onclick="togglePause()" class="btn-chunky bg-yellow-400 text-black text-xl md:text-2xl p-2 md:p-3 rounded-xl shadow-[0_4px_0px_#b45309]">⏸️</button>
+                    <div class="bg-black/50 px-4 py-2 rounded-xl border border-gray-700">
+                        <span id="game-timer" class="text-2xl md:text-4xl font-mono text-yellow-300 font-black">00:00</span>
+                    </div>
+                </div>
+                <div class="brand-font text-white text-xl md:text-3xl opacity-80 text-stroke hidden sm:block">Yuli Digital</div>
+                <div>
+                    <button onclick="toggleSound()" id="btn-sound" class="btn-chunky bg-blue-400 text-white text-xl md:text-2xl p-2 md:p-3 rounded-xl shadow-[0_4px_0px_#1e3a8a]">🔊</button>
+                </div>
+            </div>
+
+            <!-- Game Content Area (Tracks + Controls combined per player) -->
+            <div class="flex-1 w-full bg-emerald-700 p-2 md:p-4 flex flex-col justify-center overflow-hidden bg-[url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI0MCIgaGVpZ2h0PSI0MCI+PHBhdGggZD0iTTIwIDIwTDAgMEwyMCAwbDIwIDIwLTIwIDIweiIgZmlsbD0iIzA0Nzg1NyIgZmlsbC1vcGFjaXR5PSIwLjEiLz48L3N2Zz4=')]">
+                <!-- Inner container adapts width based on player count -->
+                <div id="game-layout" class="flex-1 w-full flex bg-gray-800 rounded-2xl md:rounded-3xl border-4 md:border-8 border-gray-900 overflow-hidden shadow-2xl relative mx-auto">
+                    <!-- Dynamic Player Columns inserted here via JS -->
+                </div>
+            </div>
+
+            <!-- Overlays -->
+            <div id="countdown-overlay" class="hidden absolute inset-0 flex items-center justify-center bg-black/70 z-50 backdrop-blur-sm">
+                <div id="countdown-text" class="text-[10rem] md:text-[15rem] text-yellow-400 font-black text-stroke drop-shadow-2xl scale-0 transition-transform duration-300">3</div>
+            </div>
+
+            <div id="pause-overlay" class="hidden absolute inset-0 flex flex-col items-center justify-center bg-black/80 z-50 backdrop-blur-md">
+                <h2 class="text-6xl md:text-8xl text-white font-black title-font mb-12 text-stroke">PAUSED</h2>
+                <div class="flex flex-col gap-6 w-full max-w-sm px-4">
+                    <button onclick="togglePause()" class="btn-chunky bg-green-500 text-white font-black text-3xl py-5 rounded-2xl shadow-[0_6px_0px_#166534] border-4 border-white">LANJUTKAN</button>
+                    <button onclick="quitGame()" class="btn-chunky bg-red-500 text-white font-black text-2xl py-5 rounded-2xl shadow-[0_6px_0px_#991b1b] border-4 border-white">KELUAR</button>
+                </div>
+            </div>
+        </div>
+
+        <div id="screen-result" class="hidden absolute inset-0 flex flex-col items-center justify-center bg-gradient-to-br from-indigo-900 via-purple-900 to-black z-50 px-4 py-8">
+            <h1 class="text-6xl md:text-8xl title-font text-yellow-400 text-stroke drop-shadow-2xl mb-4 text-center">HASIL AKHIR</h1>
+            <p class="text-white mb-8 font-black text-xl md:text-2xl bg-black/50 px-6 py-2 rounded-full border border-white/20" id="result-mode-text">SQUAD MODE</p>
+            
+            <div class="w-full max-w-2xl bg-white/10 backdrop-blur-md p-4 md:p-8 rounded-[2rem] border-4 border-white/30 mb-8 max-h-[60%] overflow-y-auto" id="result-list">
+                <!-- Results injected via JS -->
+            </div>
+
+            <div class="flex flex-col md:flex-row gap-4 w-full max-w-2xl">
+                <button onclick="showScreen('home')" class="flex-1 py-5 md:py-6 bg-gray-500 text-white font-black text-2xl md:text-3xl rounded-3xl shadow-[0_8px_0px_#374151] border-4 border-white active:translate-y-2 active:shadow-none transition-transform">MENU UTAMA</button>
+                <button onclick="startGame()" class="flex-1 py-5 md:py-6 bg-green-500 text-white font-black text-2xl md:text-3xl rounded-3xl shadow-[0_8px_0px_#166534] border-4 border-white active:translate-y-2 active:shadow-none transition-transform">MAIN LAGI 🔄</button>
+            </div>
+        </div>
+
+    </div>
+
+    <script>
+        const gameState = {
+            mode: 'SINGLE',
+            difficulty: 'EASY',
+            players: [],
+            isPlaying: false,
+            isPaused: false,
+            soundOn: true,
+            startTime: 0,
+            elapsedTime: 0,
+            loopId: null,
+            finishedCount: 0,
+            colors: ['#EF4444', '#3B82F6', '#10B981', '#F59E0B'],
+            maxQuestions: 10 // Target 10 soal untuk mencapai finish
+        };
+
+        const AUDIO_CTX = new (window.AudioContext || window.webkitAudioContext)();
+
+        function playSound(type) {
+            if (!gameState.soundOn || AUDIO_CTX.state === 'suspended') return;
+            try {
+                const osc = AUDIO_CTX.createOscillator();
+                const gain = AUDIO_CTX.createGain();
+                osc.connect(gain);
+                gain.connect(AUDIO_CTX.destination);
+
+                const now = AUDIO_CTX.currentTime;
+                
+                if (type === 'correct') {
+                    osc.type = 'sine';
+                    osc.frequency.setValueAtTime(800, now);
+                    osc.frequency.exponentialRampToValueAtTime(1200, now + 0.1);
+                    gain.gain.setValueAtTime(0.4, now);
+                    gain.gain.exponentialRampToValueAtTime(0.01, now + 0.3);
+                    osc.start(now);
+                    osc.stop(now + 0.3);
+                } else if (type === 'wrong') {
+                    osc.type = 'sawtooth';
+                    osc.frequency.setValueAtTime(200, now);
+                    osc.frequency.linearRampToValueAtTime(100, now + 0.3);
+                    gain.gain.setValueAtTime(0.4, now);
+                    gain.gain.exponentialRampToValueAtTime(0.01, now + 0.3);
+                    osc.start(now);
+                    osc.stop(now + 0.3);
+                } else if (type === 'finish') {
+                    osc.type = 'square';
+                    osc.frequency.setValueAtTime(400, now);
+                    osc.frequency.setValueAtTime(600, now + 0.1);
+                    osc.frequency.setValueAtTime(800, now + 0.2);
+                    osc.frequency.setValueAtTime(1200, now + 0.3);
+                    gain.gain.setValueAtTime(0.3, now);
+                    gain.gain.linearRampToValueAtTime(0, now + 1.0);
+                    osc.start(now);
+                    osc.stop(now + 1.0);
+                }
+            } catch (e) { console.warn("Audio error", e); }
+        }
+
+        function showScreen(screenId) {
+            ['screen-home', 'screen-setup', 'screen-instructions', 'screen-game', 'screen-result'].forEach(id => {
+                document.getElementById(id).classList.add('hidden');
+            });
+            document.getElementById(`screen-${screenId}`).classList.remove('hidden');
+        }
+
+        function selectMode(mode) {
+            gameState.mode = mode;
+            showScreen('setup');
+            document.getElementById('setup-title').innerText = mode + " MODE";
+            
+            const container = document.getElementById('player-inputs');
+            container.innerHTML = '';
+            
+            let count = mode === 'SINGLE' ? 1 : (mode === 'BATTLE' ? 2 : 4);
+            
+            // Adjust grid columns based on count
+            if(count === 1) container.className = "flex justify-center";
+            else if(count === 2) container.className = "grid grid-cols-1 md:grid-cols-2 gap-4";
+            else container.className = "grid grid-cols-1 md:grid-cols-2 gap-4";
+
+            for(let i=0; i<count; i++) {
+                container.innerHTML += `
+                    <div class="flex items-center gap-3 bg-black/20 p-3 rounded-2xl w-full max-w-sm border border-white/20 shadow-inner">
+                        <div class="w-10 h-10 rounded-full border-2 border-white shadow-md flex-shrink-0" style="background-color: ${gameState.colors[i]}"></div>
+                        <input type="text" id="p-name-${i}" placeholder="Nama Pemain ${i+1}" class="flex-1 p-3 rounded-xl bg-white text-black font-black text-xl outline-none focus:ring-4 focus:ring-blue-400 w-full" value="Pemain ${i+1}" maxlength="10">
+                    </div>
+                `;
+            }
+        }
+
+        function setDifficulty(diff) {
+            gameState.difficulty = diff;
+            ['EASY', 'MEDIUM', 'HARD'].forEach(d => {
+                const btn = document.getElementById(`btn-diff-${d}`);
+                if(d === diff) {
+                    btn.classList.remove('bg-gray-500', 'border-transparent', 'shadow-[0_6px_0px_#374151]');
+                    btn.classList.add('bg-green-500', 'border-white', 'shadow-[0_6px_0px_#166534]', 'scale-105');
+                } else {
+                    btn.classList.add('bg-gray-500', 'border-transparent', 'shadow-[0_6px_0px_#374151]');
+                    btn.classList.remove('bg-green-500', 'border-white', 'shadow-[0_6px_0px_#166534]', 'scale-105');
+                }
+            });
+        }
+
+        function toggleSound() {
+            gameState.soundOn = !gameState.soundOn;
+            document.getElementById('btn-sound').innerText = gameState.soundOn ? '🔊' : '🔇';
+            if(gameState.soundOn && AUDIO_CTX.state === 'suspended') {
+                AUDIO_CTX.resume();
+            }
+        }
+
+        function getRandomInt(min, max) {
+            return Math.floor(Math.random() * (max - min + 1)) + min;
+        }
+
+        function generateMathProblem() {
+            let diff = gameState.difficulty;
+            let q, ans;
+            let rand = Math.random();
+            
+            if (diff === 'EASY') {
+                if (rand > 0.5) {
+                    let a = getRandomInt(10, 50);
+                    let b = getRandomInt(5, 40);
+                    ans = a + b; q = `${a} + ${b}`;
+                } else {
+                    let a = getRandomInt(30, 90);
+                    let b = getRandomInt(10, a);
+                    ans = a - b; q = `${a} - ${b}`;
+                }
+            } else if (diff === 'MEDIUM') {
+                if (rand < 0.4) {
+                    let a = getRandomInt(50, 150);
+                    let b = getRandomInt(20, 100);
+                    ans = a + b; q = `${a} + ${b}`;
+                } else if (rand < 0.8) {
+                    let a = getRandomInt(100, 250);
+                    let b = getRandomInt(20, a);
+                    ans = a - b; q = `${a} - ${b}`;
+                } else {
+                    let a = getRandomInt(3, 10);
+                    let b = getRandomInt(3, 10);
+                    ans = a * b; q = `${a} x ${b}`;
+                }
+            } else { // HARD
+                if (rand < 0.3) {
+                    let a = getRandomInt(100, 500);
+                    let b = getRandomInt(50, 300);
+                    ans = a + b; q = `${a} + ${b}`;
+                } else if (rand < 0.6) {
+                    let a = getRandomInt(300, 800);
+                    let b = getRandomInt(50, a);
+                    ans = a - b; q = `${a} - ${b}`;
+                } else if (rand < 0.85) {
+                    let a = getRandomInt(11, 20);
+                    let b = getRandomInt(4, 9);
+                    ans = a * b; q = `${a} x ${b}`;
+                } else {
+                    let b = getRandomInt(4, 12);
+                    ans = getRandomInt(5, 20);
+                    let a = ans * b;
+                    q = `${a} : ${b}`;
+                }
+            }
+
+            let offset = getRandomInt(1, 10) * (Math.random() > 0.5 ? 1 : -1);
+            let falseAns = ans + offset;
+            if(falseAns === ans) falseAns += 2;
+            if(falseAns < 0) falseAns = Math.abs(ans - offset) + 1;
+
+            let options = [ans, falseAns];
+            options.sort(() => Math.random() - 0.5);
+
+            return { q, ans, options };
+        }
+
+        function initPlayers() {
+            let count = gameState.mode === 'SINGLE' ? 1 : (gameState.mode === 'BATTLE' ? 2 : 4);
+            gameState.players = [];
+            for(let i=0; i<count; i++) {
+                let inputEl = document.getElementById(`p-name-${i}`);
+                let pName = (inputEl && inputEl.value) ? inputEl.value : `Pemain ${i+1}`;
+                gameState.players.push({
+                    id: i,
+                    name: pName,
+                    color: gameState.colors[i],
+                    correctAnswers: 0,
+                    score: 0,
+                    mistakes: 0,
+                    finished: false,
+                    finishRank: 0,
+                    finishTime: 0,
+                    penaltyTimer: 0,
+                    currentMath: generateMathProblem()
+                });
+            }
+            gameState.finishedCount = 0;
+            gameState.elapsedTime = 0;
+            document.getElementById('game-timer').innerText = "00:00";
+        }
+
+        function createCartoonCarSVG(color) {
+            // Enhanced 3D-ish cartoon car
+            return `
+            <svg viewBox="0 0 100 200" class="w-full h-full drop-shadow-xl" preserveAspectRatio="xMidYMid meet">
+                <!-- Shadow -->
+                <rect x="15" y="10" width="70" height="185" rx="20" fill="#000" opacity="0.4" transform="translate(5, 5)"/>
+                
+                <!-- Tires -->
+                <rect x="8" y="30" width="16" height="36" rx="5" fill="#1e293b" />
+                <rect x="76" y="30" width="16" height="36" rx="5" fill="#1e293b" />
+                <rect x="8" y="140" width="16" height="36" rx="5" fill="#1e293b" />
+                <rect x="76" y="140" width="16" height="36" rx="5" fill="#1e293b" />
+                
+                <!-- Chassis Main -->
+                <rect x="18" y="10" width="64" height="180" rx="20" fill="${color}" stroke="#fff" stroke-width="3"/>
+                
+                <!-- Front Bumper -->
+                <path d="M 22 10 Q 50 0 78 10 L 82 25 L 18 25 Z" fill="#cbd5e1" stroke="#475569" stroke-width="2"/>
+                
+                <!-- Cabin/Roof -->
+                <rect x="25" y="65" width="50" height="70" rx="15" fill="rgba(0,0,0,0.1)"/>
+                
+                <!-- Windshield (Front) -->
+                <path d="M 28 65 L 72 65 L 66 90 L 34 90 Z" fill="#7dd3fc" stroke="#0f172a" stroke-width="2.5"/>
+                <!-- Glare on windshield -->
+                <path d="M 32 70 L 68 70 L 64 85 L 36 85 Z" fill="rgba(255,255,255,0.4)"/>
+
+                <!-- Windshield (Rear) -->
+                <path d="M 34 110 L 66 110 L 72 135 L 28 135 Z" fill="#7dd3fc" stroke="#0f172a" stroke-width="2.5"/>
+                
+                <!-- Headlights -->
+                <ellipse cx="28" cy="18" rx="8" ry="6" fill="#fef08a" stroke="#ca8a04" stroke-width="2"/>
+                <ellipse cx="72" cy="18" rx="8" ry="6" fill="#fef08a" stroke="#ca8a04" stroke-width="2"/>
+                <!-- Headlight glow -->
+                <circle cx="28" cy="18" r="3" fill="#fff"/>
+                <circle cx="72" cy="18" r="3" fill="#fff"/>
+
+                <!-- Taillights -->
+                <rect x="22" y="182" width="16" height="8" rx="3" fill="#ef4444" stroke="#7f1d1d" stroke-width="1.5"/>
+                <rect x="62" y="182" width="16" height="8" rx="3" fill="#ef4444" stroke="#7f1d1d" stroke-width="1.5"/>
+
+                <!-- Decal / Stripe -->
+                <rect x="45" y="25" width="10" height="40" fill="#fff" opacity="0.8"/>
+                <rect x="45" y="135" width="10" height="50" fill="#fff" opacity="0.8"/>
+            </svg>`;
+        }
+
+        function renderGameUI() {
+            const layout = document.getElementById('game-layout');
+            layout.innerHTML = '';
+            
+            let count = gameState.players.length;
+            
+            // Adjust container width for large screens based on mode
+            if (count === 1) {
+                layout.className = "flex-1 w-full max-w-lg flex bg-gray-900 rounded-2xl border-4 border-black overflow-hidden shadow-2xl relative mx-auto";
+            } else if (count === 2) {
+                layout.className = "flex-1 w-full max-w-3xl flex bg-gray-900 rounded-3xl border-8 border-black overflow-hidden shadow-2xl relative mx-auto";
+            } else {
+                layout.className = "flex-1 w-full max-w-full flex bg-gray-900 rounded-3xl border-8 border-black overflow-hidden shadow-2xl relative mx-auto";
+            }
+
+            // Shared finish line across all tracks
+            let finishLine = document.createElement('div');
+            finishLine.className = 'finish-line';
+            layout.appendChild(finishLine);
+            
+            gameState.players.forEach((p, idx) => {
+                // Column container (Track + Control)
+                let col = document.createElement('div');
+                col.className = `flex-1 flex flex-col h-full border-r-4 border-black relative ${idx === 0 ? 'border-l-0' : ''} ${idx === count - 1 ? 'border-r-0' : ''}`;
+                
+                // --- TRACK SECTION ---
+                let track = document.createElement('div');
+                track.className = `flex-1 relative flex justify-center track-bg road-moving overflow-hidden`;
+                track.id = `lane-${p.id}`;
+                
+                // Adjust car size based on player count and screen
+                // We use percentage widths so it scales perfectly on TV/Mobile
+                let carWidth = count === 4 ? 'w-[60%] max-w-[80px]' : 'w-[50%] max-w-[120px]';
+                
+                let car = document.createElement('div');
+                car.className = `absolute car-container ${carWidth}`;
+                car.style.bottom = '2%'; // Start position
+                car.id = `car-${p.id}`;
+                
+                let carSvgContainer = document.createElement('div');
+                carSvgContainer.className = "w-full aspect-[1/2]";
+                carSvgContainer.innerHTML = createCartoonCarSVG(p.color);
+                car.appendChild(carSvgContainer);
+                
+                // Floating Score popup
+                let popup = document.createElement('div');
+                popup.id = `popup-${p.id}`;
+                popup.className = "absolute top-0 left-1/2 transform -translate-x-1/2 font-black text-3xl md:text-5xl text-stroke opacity-0 pointer-events-none z-50 whitespace-nowrap";
+                car.appendChild(popup);
+
+                track.appendChild(car);
+
+                // --- CONTROLS SECTION ---
+                let control = document.createElement('div');
+                // Height is fixed relative to screen (e.g. 30% of column, or fixed px)
+                control.className = `h-40 md:h-56 bg-slate-800 border-t-4 md:border-t-8 border-black flex flex-col p-2 md:p-4 relative shrink-0`;
+                
+                let contentHTML = `
+                    <div class="text-center font-black text-xs sm:text-base md:text-2xl truncate mb-1 md:mb-3 text-stroke-sm tracking-wide" style="color:${p.color}">${p.name}</div>
+                    
+                    <div class="flex-1 flex flex-col gap-2 md:gap-4 justify-between h-full">
+                        <!-- Soal -->
+                        <div id="q-${p.id}" class="bg-white text-black font-black text-lg sm:text-xl md:text-4xl rounded-lg md:rounded-2xl text-center py-2 md:py-4 shadow-inner border-4 border-gray-300 flex items-center justify-center">
+                            ${p.currentMath.q}
+                        </div>
+                        
+                        <!-- Pilihan Jawaban -->
+                        <div class="flex flex-row gap-2 md:gap-4 h-full">
+                            <button id="btn-${p.id}-0" onclick="answer(${p.id}, 0)" class="btn-chunky flex-1 bg-blue-500 hover:bg-blue-400 text-white font-black text-lg md:text-4xl rounded-lg md:rounded-2xl shadow-[0_6px_0px_#1e3a8a] md:shadow-[0_8px_0px_#1e3a8a] border-2 md:border-4 border-white flex items-center justify-center">
+                                ${p.currentMath.options[0]}
+                            </button>
+                            <button id="btn-${p.id}-1" onclick="answer(${p.id}, 1)" class="btn-chunky flex-1 bg-blue-500 hover:bg-blue-400 text-white font-black text-lg md:text-4xl rounded-lg md:rounded-2xl shadow-[0_6px_0px_#1e3a8a] md:shadow-[0_8px_0px_#1e3a8a] border-2 md:border-4 border-white flex items-center justify-center">
+                                ${p.currentMath.options[1]}
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Overlay Salah -->
+                    <div id="penalty-${p.id}" class="hidden absolute inset-0 bg-red-600/90 flex flex-col items-center justify-center z-10 backdrop-blur-sm">
+                        <span class="text-white font-black text-5xl md:text-7xl mb-2">❌</span>
+                        <span class="text-white font-bold text-sm md:text-xl text-center px-2">TUNGGU BENTAR...</span>
+                    </div>
+
+                    <!-- Overlay Finish -->
+                    <div id="finish-overlay-${p.id}" class="hidden absolute inset-0 bg-black/90 flex flex-col items-center justify-center z-20">
+                        <span class="text-5xl md:text-7xl mb-2 animate-bounce">🏁</span>
+                        <span id="rank-text-${p.id}" class="text-yellow-400 font-black text-2xl md:text-4xl text-stroke text-center"></span>
+                    </div>
+                `;
+                control.innerHTML = contentHTML;
+                
+                col.appendChild(track);
+                col.appendChild(control);
+                layout.appendChild(col);
+            });
+        }
+
+        function startGame() {
+            if(AUDIO_CTX.state === 'suspended') AUDIO_CTX.resume();
+            
+            initPlayers();
+            renderGameUI();
+            showScreen('game');
+            
+            gameState.isPlaying = false;
+            gameState.isPaused = false;
+            
+            const overlay = document.getElementById('countdown-overlay');
+            const text = document.getElementById('countdown-text');
+            overlay.classList.remove('hidden');
+            
+            let count = 3;
+            text.innerText = count;
+            text.classList.remove('scale-0');
+            text.classList.add('scale-100');
+            playSound('correct');
+
+            let timer = setInterval(() => {
+                text.classList.remove('scale-100');
+                text.classList.add('scale-0');
+                
+                setTimeout(() => {
+                    count--;
+                    if(count > 0) {
+                        text.innerText = count;
+                        playSound('correct');
+                        text.classList.remove('scale-0');
+                        text.classList.add('scale-100');
+                    } else if (count === 0) {
+                        text.innerText = "GO!";
+                        text.classList.add('text-green-400');
+                        playSound('finish');
+                        text.classList.remove('scale-0');
+                        text.classList.add('scale-100');
+                    } else {
+                        clearInterval(timer);
+                        overlay.classList.add('hidden');
+                        text.classList.remove('text-green-400'); // reset
+                        beginRace();
+                    }
+                }, 300);
+            }, 1000);
+        }
+
+        function beginRace() {
+            gameState.isPlaying = true;
+            gameState.startTime = Date.now();
+            if(gameState.loopId) cancelAnimationFrame(gameState.loopId);
+            gameState.loopId = requestAnimationFrame(gameLoop);
+            
+            document.querySelectorAll('.road-moving').forEach(el => el.style.animationPlayState = 'running');
+        }
+
+        function togglePause() {
+            if(!gameState.isPlaying && !gameState.isPaused) return;
+            
+            gameState.isPaused = !gameState.isPaused;
+            const overlay = document.getElementById('pause-overlay');
+            
+            if(gameState.isPaused) {
+                overlay.classList.remove('hidden');
+                document.querySelectorAll('.road-moving').forEach(el => el.style.animationPlayState = 'paused');
+            } else {
+                overlay.classList.add('hidden');
+                document.querySelectorAll('.road-moving').forEach(el => el.style.animationPlayState = 'running');
+                gameState.startTime += (Date.now() - gameState.pauseTime);
+                gameState.loopId = requestAnimationFrame(gameLoop);
+            }
+            gameState.pauseTime = Date.now();
+        }
+
+        function quitGame() {
+            gameState.isPlaying = false;
+            if(gameState.loopId) cancelAnimationFrame(gameState.loopId);
+            showScreen('home');
+        }
+
+        function answer(playerId, optionIndex) {
+            if(!gameState.isPlaying || gameState.isPaused) return;
+            
+            let p = gameState.players[playerId];
+            if(p.finished || p.penaltyTimer > 0) return;
+
+            // Visual button press effect artificially on mobile
+            let btn = document.getElementById(`btn-${p.id}-${optionIndex}`);
+            btn.style.transform = 'translateY(6px)';
+            btn.style.boxShadow = 'none';
+            setTimeout(() => {
+                btn.style.transform = '';
+                btn.style.boxShadow = '';
+            }, 100);
+
+            let selectedAns = p.currentMath.options[optionIndex];
+            let isCorrect = selectedAns === p.currentMath.ans;
+
+            if (isCorrect) {
+                playSound('correct');
+                p.score += 10;
+                p.correctAnswers += 1;
+                
+                showPopup(p.id, "BENAR! 🚀", "text-green-400");
+                
+                if (p.correctAnswers >= gameState.maxQuestions) {
+                    p.finished = true;
+                    playerFinished(p);
+                    // Sembunyikan soal dan tombol jika sudah finish
+                    document.getElementById(`q-${p.id}`).innerText = "SELESAI!";
+                    document.getElementById(`btn-${p.id}-0`).classList.add('invisible');
+                    document.getElementById(`btn-${p.id}-1`).classList.add('invisible');
+                } else {
+                    p.currentMath = generateMathProblem();
+                    updateQuestionUI(p);
+                }
+            } else {
+                playSound('wrong');
+                p.mistakes += 1;
+                p.penaltyTimer = 90; // ~1.5 detik
+                
+                showPopup(p.id, "SALAH! 💥", "text-red-500");
+                
+                // Disable controls visually
+                document.getElementById(`penalty-${p.id}`).classList.remove('hidden');
+                
+                let car = document.getElementById(`car-${p.id}`);
+                car.classList.remove('shake');
+                void car.offsetWidth;
+                car.classList.add('shake');
+                
+                setTimeout(() => {
+                    p.currentMath = generateMathProblem();
+                    updateQuestionUI(p);
+                }, 1500);
+            }
+        }
+
+        function updateQuestionUI(p) {
+            document.getElementById(`q-${p.id}`).innerText = p.currentMath.q;
+            document.getElementById(`btn-${p.id}-0`).innerText = p.currentMath.options[0];
+            document.getElementById(`btn-${p.id}-1`).innerText = p.currentMath.options[1];
+        }
+
+        function showPopup(playerId, text, colorClass) {
+            let popup = document.getElementById(`popup-${playerId}`);
+            if(!popup) return;
+            popup.innerText = text;
+            popup.className = `absolute top-[-20%] left-1/2 transform -translate-x-1/2 font-black text-3xl md:text-5xl text-stroke opacity-0 pointer-events-none z-50 whitespace-nowrap float-up ${colorClass}`;
+            
+            // Restart animation
+            popup.style.animation = 'none';
+            void popup.offsetWidth;
+            popup.style.animation = null;
+        }
+
+        function gameLoop() {
+            if(!gameState.isPlaying || gameState.isPaused) return;
+
+            let elapsed = Math.floor((Date.now() - gameState.startTime) / 1000);
+            let mins = String(Math.floor(elapsed / 60)).padStart(2, '0');
+            let secs = String(elapsed % 60).padStart(2, '0');
+            document.getElementById('game-timer').innerText = `${mins}:${secs}`;
+            gameState.elapsedTime = elapsed;
+
+            let allFinished = true;
+
+            gameState.players.forEach(p => {
+                if(p.penaltyTimer > 0) {
+                    p.penaltyTimer--;
+                    if(p.penaltyTimer <= 0) {
+                        document.getElementById(`penalty-${p.id}`).classList.add('hidden');
+                    }
+                }
+
+                // Hitung posisi visual murni berdasarkan jumlah jawaban benar (0 - 10)
+                let visualY = 2 + (p.correctAnswers / gameState.maxQuestions) * 83;
+                if (visualY > 85) visualY = 85;
+                document.getElementById(`car-${p.id}`).style.bottom = `${visualY}%`;
+
+                if(!p.finished) {
+                    allFinished = false;
+                }
+            });
+
+            if (allFinished) {
+                setTimeout(endGame, 2000);
+            } else {
+                gameState.loopId = requestAnimationFrame(gameLoop);
+            }
+        }
+
+        function playerFinished(p) {
+            gameState.finishedCount++;
+            p.finishRank = gameState.finishedCount;
+            p.finishTime = gameState.elapsedTime;
+            playSound('finish');
+
+            let overlay = document.getElementById(`finish-overlay-${p.id}`);
+            overlay.classList.remove('hidden');
+            let rankText = document.getElementById(`rank-text-${p.id}`);
+            
+            if(gameState.mode === 'SINGLE') {
+                rankText.innerText = "FINISH!";
+            } else {
+                rankText.innerText = `Juara ${p.finishRank}`;
+            }
+
+            document.getElementById(`lane-${p.id}`).classList.remove('road-moving');
+        }
+
+        function endGame() {
+            gameState.isPlaying = false;
+            document.querySelectorAll('.road-moving').forEach(el => el.classList.remove('road-moving'));
+            showScreen('result');
+            
+            document.getElementById('result-mode-text').innerText = `${gameState.mode} MODE - ${gameState.difficulty}`;
+            const resultList = document.getElementById('result-list');
+            resultList.innerHTML = '';
+
+            let sortedPlayers = [...gameState.players].sort((a, b) => a.finishRank - b.finishRank);
+
+            sortedPlayers.forEach(p => {
+                let mins = String(Math.floor(p.finishTime / 60)).padStart(2, '0');
+                let secs = String(p.finishTime % 60).padStart(2, '0');
+                
+                let rankIcon = '🏁';
+                if(gameState.mode !== 'SINGLE') {
+                    if(p.finishRank === 1) rankIcon = '🥇';
+                    else if(p.finishRank === 2) rankIcon = '🥈';
+                    else if(p.finishRank === 3) rankIcon = '🥉';
+                }
+
+                resultList.innerHTML += `
+                    <div class="bg-black/40 rounded-2xl p-4 md:p-6 mb-4 flex items-center justify-between border-l-8 shadow-md" style="border-color:${p.color}">
+                        <div class="flex items-center gap-4 md:gap-6">
+                            <span class="text-4xl md:text-6xl drop-shadow-lg">${rankIcon}</span>
+                            <div>
+                                <h3 class="text-white font-black text-xl md:text-3xl uppercase text-stroke-sm">${p.name}</h3>
+                                <p class="text-sm md:text-xl text-gray-300 font-bold mt-1">Skor: <span class="text-green-400">${p.score}</span> | Salah: <span class="text-red-400">${p.mistakes}</span></p>
+                            </div>
+                        </div>
+                        <div class="text-right bg-black/50 p-2 md:p-4 rounded-xl border border-gray-600">
+                            <span class="block text-yellow-400 font-mono text-2xl md:text-4xl font-black">${mins}:${secs}</span>
+                            <span class="text-xs md:text-sm text-gray-400 font-bold uppercase">Waktu</span>
+                        </div>
+                    </div>
+                `;
+            });
+        }
+
+        // Init Setup
+        showScreen('home');
+        setDifficulty('EASY');
+    </script>
+</body>
+</html>
